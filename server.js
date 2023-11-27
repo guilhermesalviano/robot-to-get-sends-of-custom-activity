@@ -27,10 +27,10 @@ app.get('/api/journey', async (req, res) => {
         });
         if (pageSize < amountResults) {
             page++;
-            const pages = Math.ceil((amountResults - pageSize)/pageSize);
-            while (pages > page) {
+            const pages = Math.ceil(amountResults/pageSize);
+            while (page <= pages) {
                 const response = await getCustomSends(cookie, xcsrftoken, activityId, page, pageSize);
-                results.push(response.data.items.map((object) => {
+                results.push(...response.data.items.map((object) => {
                     return {
                         contactKey: object.contactKey,
                         transactionTime: object.transactionTime,
