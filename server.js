@@ -10,11 +10,12 @@ const PORT = 3000;
 // Rota da API
 app.get('/api/journey', async (req, res) => {
     const { cookie, xcsrftoken } = req.headers;
+    const { startDate, endDate } = req.query;
     const { activityId } = req.body;
     try {
         let page = 1;
         const pageSize = 1000;
-        const response = await getCustomSends(cookie, xcsrftoken, activityId, page, pageSize);
+        const response = await getCustomSends(cookie, xcsrftoken, activityId, startDate, endDate, page, pageSize);
         const amountResults = response.data.count;
         let results = response.data.items.map((object) => {
             return {
@@ -29,7 +30,7 @@ app.get('/api/journey', async (req, res) => {
             page++;
             const pages = Math.ceil(amountResults/pageSize);
             while (page <= pages) {
-                const response = await getCustomSends(cookie, xcsrftoken, activityId, page, pageSize);
+                const response = await getCustomSends(cookie, xcsrftoken, activityId, startDate, endDate, page, pageSize);
                 results.push(...response.data.items.map((object) => {
                     return {
                         contactKey: object.contactKey,
@@ -42,7 +43,7 @@ app.get('/api/journey', async (req, res) => {
                 page++;
             }
         }
-        return res.json(results);
+        return res.header("amountResults", amountResults).json(results);
     } catch (error) {
         // Em caso de erro, enviamos uma resposta de erro
         console.log(error)
@@ -50,7 +51,7 @@ app.get('/api/journey', async (req, res) => {
     }
 });
 
-async function getCustomSends(cookie, xcsrftoken, activityId, page, pageSize) {
+async function getCustomSends(cookie, xcsrftoken, activityId, startDate, endDate, page, pageSize) {
     return await axios.request({
         method: 'POST',
         url: `https://jbinteractions.s11.marketingcloudapps.com/fuelapi/interaction/v1/interactions/journeyhistory/search?$page=${page}&$pageSize=${pageSize}`,
@@ -66,8 +67,8 @@ async function getCustomSends(cookie, xcsrftoken, activityId, page, pageSize) {
                 "REST"
             ],
             contactKeys: [],
-            start: "2023-10-28T17:54:28.117Z",
-            end: null,
+            start: startDate,
+            end: endDate,
             clientStatuses: [
                 "AllActivityMembership"
             ]
