@@ -13,36 +13,7 @@ app.get('/api/journey', async (req, res) => {
     const { startDate, endDate } = req.query;
     const { activityId } = req.body;
     try {
-        let page = 1;
-        const pageSize = 1000;
-        const response = await getCustomSends(cookie, xcsrftoken, activityId, startDate, endDate, page, pageSize);
-        const amountResults = response.data.count;
-        let results = response.data.items.map((object) => {
-            return {
-                contactKey: object.contactKey,
-                transactionTime: object.transactionTime,
-                activityName: object.activityName,
-                status: object.status,
-                clientStatus: object.clientStatus
-            }
-        });
-        if (pageSize < amountResults) {
-            page++;
-            const pages = Math.ceil(amountResults/pageSize);
-            while (page <= pages) {
-                const response = await getCustomSends(cookie, xcsrftoken, activityId, startDate, endDate, page, pageSize);
-                results.push(...response.data.items.map((object) => {
-                    return {
-                        contactKey: object.contactKey,
-                        transactionTime: object.transactionTime,
-                        activityName: object.activityName,
-                        status: object.status,
-                        clientStatus: object.clientStatus
-                    }
-                }));
-                page++;
-            }
-        }
+        const [results, amountResults] = await getAllSendsInDate(cookie, xcsrftoken, activityId, startDate, endDate)
         return res.header("amountResults", amountResults).json(results);
     } catch (error) {
         // Em caso de erro, enviamos uma resposta de erro
@@ -51,13 +22,49 @@ app.get('/api/journey', async (req, res) => {
     }
 });
 
+async function getAllSendsInDate(cookie, xcsrftoken, activityId, startDate, endDate) {
+    let page = 1;
+    const pageSize = 1000;
+    /** this api had a 10k limit in results */
+    const response = await getCustomSends(cookie, xcsrftoken, activityId, startDate, endDate, page, pageSize);
+    const amountResults = response.data.count;
+    let results = response.data.items.map((object) => {
+        return {
+            contactKey: object.contactKey,
+            transactionTime: object.transactionTime,
+            activityName: object.activityName,
+            status: object.status,
+            clientStatus: object.clientStatus
+        }
+    });
+    if (pageSize < amountResults) {
+        page++;
+        const pages = Math.ceil(amountResults/pageSize);
+        while (page <= pages) {
+            const response = await getCustomSends(cookie, xcsrftoken, activityId, startDate, endDate, page, pageSize);
+            results.push(...response.data.items.map((object) => {
+                return {
+                    contactKey: object.contactKey,
+                    transactionTime: object.transactionTime,
+                    activityName: object.activityName,
+                    status: object.status,
+                    clientStatus: object.clientStatus
+                }
+            }));
+            page++;
+        }
+    }
+    return [results, amountResults]
+}
+
 async function getCustomSends(cookie, xcsrftoken, activityId, startDate, endDate, page, pageSize) {
     return await axios.request({
         method: 'POST',
         url: `https://jbinteractions.s11.marketingcloudapps.com/fuelapi/interaction/v1/interactions/journeyhistory/search?$page=${page}&$pageSize=${pageSize}`,
         headers: {
             'Cookie': cookie,
-            'X-CSRF-Token': xcsrftoken
+            'X-CSRF-Token': xcsrftoken,
+            'X-Requested-With': 'XMLHttpRequest'
         },
         data: {
             activityIds: [
