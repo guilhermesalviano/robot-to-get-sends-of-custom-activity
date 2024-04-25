@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const fs = require('fs');
 
 const app = express();
 
@@ -14,6 +15,14 @@ app.get('/api/journey', async (req, res) => {
     const { activityId } = req.body;
     try {
         const [results, amountResults] = await getAllSendsInDate(cookie, xcsrftoken, activityId, startDate, endDate)
+        
+        fs.writeFile(`files/${results[0].activityName.split(" ")[1]}_${startDate.split("T")[0]}_${endDate.split("T")[0]}.csv`, jsonToCSV(results), (err) => {
+            if (err) {
+                console.log('Erro ao escrever o arquivo:', err);
+            } else {
+                console.log('Arquivo CSV foi criado com sucesso!');
+            }
+        });
         return res.header("amountResults", amountResults).json(results);
     } catch (error) {
         // Em caso de erro, enviamos uma resposta de erro
@@ -21,6 +30,24 @@ app.get('/api/journey', async (req, res) => {
         res.status(500).json({ error: "erro, olhe o log."});
     }
 });
+
+function jsonToCSV(jsonData) {
+    // Verifica se os dados JSON estão vazios
+    if (jsonData.length === 0) {
+        return '';
+    }
+
+    // Cria o cabeçalho CSV usando as chaves do primeiro objeto JSON
+    const keys = Object.keys(jsonData[0]);
+    let result = keys.join(',') + '\n';
+
+    // Itera sobre os objetos JSON para construir as linhas do CSV
+    jsonData.forEach(obj => {
+        result += keys.map(key => `"${obj[key]}"`).join(',') + '\n';
+    });
+
+    return result;
+}
 
 async function getAllSendsInDate(cookie, xcsrftoken, activityId, startDate, endDate) {
     let page = 1;
