@@ -16,13 +16,7 @@ app.get('/api/journey', async (req, res) => {
     try {
         const [results, amountResults] = await getAllSendsInDate(cookie, xcsrftoken, activityId, startDate, endDate)
         
-        fs.writeFile(`files/${results[0].activityName.split(" ")[1]}_${startDate.split("T")[0]}_${endDate.split("T")[0]}.csv`, jsonToCSV(results), (err) => {
-            if (err) {
-                console.log('Erro ao escrever o arquivo:', err);
-            } else {
-                console.log('Arquivo CSV foi criado com sucesso!');
-            }
-        });
+        fs.writeFile(`files/${results[0].activityName.split(" ")[1]}_${startDate.split("T")[0]}_${endDate.split("T")[0]}.csv`, jsonToCSV(results));
         return res.header("amountResults", amountResults).json(results);
     } catch (error) {
         // Em caso de erro, enviamos uma resposta de erro
